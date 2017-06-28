@@ -8,9 +8,10 @@ from xlsxwriter import Workbook
 
 argParser = argparse.ArgumentParser(description='Parse Firefox cache2 files in a directory or individually.')
 argParser.add_argument('-f', '--file', help='single cache2 file to parse')
-argParser.add_argument('-d', '--directory', help='directory with cache2 files to parse')
-argParser.add_argument('-o', '--output', help='CSV or XLSX output file')
-argParser.add_argument('-v', '--verbose', help='Print cache while parsing')
+argParser.add_argument('-d', '--directory', default=os.path.join(os.environ['USERPROFILE'], 'AppData\Local\Mozilla\Firefox\Profiles'), help='directory with cache2 files to parse')
+argParser.add_argument('-o', '--output', default='Firefox_Cache2.xlsx', help='CSV or XLSX output file')
+argParser.add_argument('-r', '--recursive', action='store_true', default=True, help='Scan input folder recursively (including subfolders)')
+argParser.add_argument('-v', '--verbose', action='store_true', default=False, help='Print cache while parsing')
 args = argParser.parse_args()
 
 chunkSize = 256 * 1024
@@ -40,7 +41,14 @@ def ParseCacheFile (parseFile):
     key = parseFile.read(keySize)
     key_hash = hashlib.sha1(key).hexdigest().upper()
 
-    if doCsv :
+    if doXlsx:
+        vals1 = [fetchCount, format(datetime.datetime.fromtimestamp(lastFetchInt)), format(datetime.datetime.fromtimestamp(lastModInt)), format(hex(frecency)), format(datetime.datetime.fromtimestamp(expireInt)), keySize, flags, key, key_hash]
+        vals2 = [fetchCount, lastFetchInt, lastModInt, hex(frecency), expireInt, keySize, flags, key, key_hash]
+        for col in range(len(vals1)):
+            worksheet1.write(row, col, vals1[col])
+            worksheet2.write(row, col, vals2[col])
+
+    elif doCsv :
         csvWriter.writerow((fetchCount,
                             datetime.datetime.fromtimestamp(lastFetchInt),
                             datetime.datetime.fromtimestamp(lastModInt),
@@ -49,13 +57,6 @@ def ParseCacheFile (parseFile):
                             flags,
                             key,
                             key_hash))
-
-    if doXlsx:
-        vals1 = [fetchCount, format(datetime.datetime.fromtimestamp(lastFetchInt)), format(datetime.datetime.fromtimestamp(lastModInt)), format(hex(frecency)), format(datetime.datetime.fromtimestamp(expireInt)), keySize, flags, key, key_hash]
-        vals2 = [fetchCount, lastFetchInt, lastModInt, hex(frecency), expireInt, keySize, flags, key, key_hash]
-        for col in range(len(vals1)):
-            worksheet1.write(row, col, vals1[col])
-            worksheet2.write(row, col, vals2[col])
 
     if verbose:
         print "version: {0}".format(version)
@@ -77,15 +78,11 @@ if args.directory or args.file :
     if args.output :
         ext = os.path.splitext(args.output)[-1]
         if ext == '.csv':
-            doCsv = True
-            doXlsx = False
+            doCsv, doXlsx, saved = True, False, False
         elif ext == '.xlsx':
-            doCsv = False
-            doXlsx = True
+            doCsv, doXlsx, saved = False, True, False
         else:
-            verbose = True
-            doCsv = False
-            doXlsx = False
+            verbose, doCsv, doXlsx, saved = True, False, False, False
         if doXlsx:
             workbook = Workbook(args.output)
             bold = workbook.add_format({'bold': True})
@@ -106,22 +103,48 @@ if args.directory or args.file :
             csvFile = open(args.output, 'w')
             csvWriter = csv.writer(csvFile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)
             csvWriter.writerow(('Fetch Count', 'Last Fetch', 'Last Modified', 'Frecency', 'Expiration', 'Flags', 'URL', 'Key Hash'))
-    procPath = args.directory
-    fileList = os.listdir(procPath)
     row = 1
-    for filePath in fileList :
-        file = open(os.path.join(procPath, filePath), 'r')
-        try:
-            ParseCacheFile(file)
-            row += 1
-        except:
-            print('Could not parse file ' + filePath)
+    if args.recursive:
+        for root, dirs, files in os.walk(args.directory):
+            for filename in files:
+                if len(os.path.splitext(filename)[-1]):
+                    continue
+                file = open(os.path.join(root, filename), 'r')
+                try:
+                    ParseCacheFile(file)
+                    row += 1
+                except:
+                    print('Could not parse file ' + filename)
+    else:
+        procPath = args.directory
+        fileList = os.listdir(procPath)
+        for filePath in fileList :
+            if os.path.isdir(os.path.join(procPath, filePath)):
+                continue
+            file = open(os.path.join(procPath, filePath), 'r')
+            try:
+                ParseCacheFile(file)
+                row += 1
+            except:
+                print('Could not parse file ' + filePath)
 
-    if doCsv :
-        print 'Data written to CSV file: {0}'.format(csvFile.name)
-        csvFile.close()
     if doXlsx:
-        workbook.close()
-    os.startfile(args.output)
+        try:
+            workbook.close()
+            print('Data written to XLSX file ' + args.output)
+            saved = True
+        except:
+            print('Could not save XLSX file ' + args.output)
+
+    elif doCsv :
+        try:
+            csvFile.close()
+            print('Data written to CSV file ' + args.output)
+            savd = True
+        except:
+            print('Could not save CSV file ' + args.output)
+
+    if saved:
+        os.startfile(args.output)
 else :
     argParser.print_help()
