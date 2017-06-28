@@ -9,9 +9,11 @@ http://encase-forensic-blog.guidancesoftware.com/2015/02/firefox-cache2-storage-
 Written by [@sandersonforens](https://twitter.com/sandersonforens):<br>
 http://sandersonforensics.com/forum/content.php?216-Converting-the-new-Firefox-cache2-files-to-an-SQLite-DB-for-investigating
 
+Forked by Jonas [@blabberBlubber](https://twitter.com/blabberBlubber) with added output to xlsx with each value in a different column so they can be viewed more easily. To speed up the processing, all data is only written to the console if the verbose flag -v is set. Script can now also be used on non-unix file systems such as Windows and can be used with no arguments given.
+
 ##Usage
 ```
-usage: firefox-cache2-file-parser.py [-h] [-f FILE] [-d DIRECTORY] [-o OUTPUT]
+usage: firefox-cache2-file-parser.py [-h] [-f FILE] [-d DIRECTORY] [-o OUTPUT] [-r] [-v]
 
 Parse Firefox cache2 files in a directory or individually.
 
@@ -21,7 +23,11 @@ optional arguments:
   -d DIRECTORY, --directory DIRECTORY
                         directory with cache2 files to parse
   -o OUTPUT, --output OUTPUT
-                        CSV output file
+                        CSV or XLSX output file
+  -r, --recursive
+                        Scan input folder recursively (includeing subfolders)
+  -v, --verbose
+                        Print cache while parsing (slow)
 ```
 
 ```
@@ -35,7 +41,8 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -o OUTPUT, --output OUTPUT
-                        CSV output file
+                        CSV or XLSX output file
+  -v, --verbose         Print cache while parsing (slow)
 
 ```
 
