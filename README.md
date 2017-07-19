@@ -24,10 +24,10 @@ optional arguments:
                         directory with cache2 files to parse
   -o OUTPUT, --output OUTPUT
                         CSV or XLSX output file
-  -r, --recursive
-                        Scan input folder recursively (includeing subfolders)
+  -s, --start
+                        open output file when done
   -v, --verbose
-                        Print cache while parsing (slow)
+                        print cache while parsing (slow)
 ```
 
 ```
