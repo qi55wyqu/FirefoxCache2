@@ -75,11 +75,14 @@ if args.file is None and args.directory is None:
         args.directory = os.path.join(os.environ['USERPROFILE'], 'AppData\Local\Mozilla\Firefox\Profiles')
     else:
         args.directory = '/home/' + getpass.getuser() + '/.cache/mozilla/firefox/'
+    if not os.path.isdir(args.directory):
+        print('Could not find Firefox directory')
+        sys.exit(1)
 elif not args.file is None:
     passed = True
     for filename in args.file:
-        if not os.path.exists(filename):
-            print(filename + ' does not exist')
+        if not os.path.isfile(filename):
+            print(filename + ' is not a file')
             passed = False
     if not passed:
         argParser.print_help()
@@ -97,11 +100,12 @@ if args.output:
     
     ext = os.path.splitext(args.output)[-1]
     if ext == '.csv':
-        doCsv, doXlsx, saved = True, False, False
+        doCsv, doXlsx = True, False
     elif ext == '.xlsx':
-        doCsv, doXlsx, saved = False, True, False
+        doCsv, doXlsx= False, True
     else:
-        verbose, doCsv, doXlsx, saved = True, False, False, False
+        verbose, doCsv, doXlsx= True, False, False
+    saved = False
     
     if doXlsx:
         workbook = Workbook(args.output)
@@ -120,17 +124,16 @@ if args.output:
             worksheet2.set_column(columns[i] + ':' + columns[i], columnWidth[i])
 
     if doCsv:
-        csvFile = open(args.output, 'w')
+        try:
+            csvFile = open(args.output, 'w')
+        except:
+            print('Could not open ' + args.output)
         csvWriter = csv.writer(csvFile, delimiter=',', quoting=csv.QUOTE_NONNUMERIC)
         csvWriter.writerow(('Fetch Count', 'Last Fetch', 'Last Modified', 'Frecency', 'Expiration', 'Flags', 'URL', 'Key Hash', 'Filename'))
 
 row = 1
 if args.file:
-    procPath = args.directory
-    fileList = os.listdir(procPath)
-    for filePath in fileList :
-        if os.path.isdir(os.path.join(procPath, filePath)):
-            continue
+    for filePath in args.file:
         try:
             ParseCacheFile(os.path.join(procPath, filePath))
             row += 1
