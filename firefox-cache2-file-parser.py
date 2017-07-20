@@ -169,7 +169,7 @@ elif doCsv :
 
 if saved and args.start:
     if sys.platform == "win32":
-        os.startfile(filename)
+        os.startfile(args.output)
     else:
         opener = 'open' if sys.platform == 'darwin' else 'xdg-open'
         subprocess.call([opener, args.output])
